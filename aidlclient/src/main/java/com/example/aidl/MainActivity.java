@@ -25,6 +25,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     ClientCallback clientCallback = new ClientCallback.Stub() {
         @Override
         public String getMsgFromClient() throws RemoteException {
+            Log.d(TAG, "------------------------------getMsgFromClient: ");
             return "hello 我是client的数据";
         }
     };
@@ -54,10 +55,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             try {
+                Log.d(TAG, "------------------------------onServiceConnected: ");
                 serverInterface = ServerInterface.Stub.asInterface(service);
                 serverInterface.registerClientCallback(clientCallback);
                 service.linkToDeath(deadthRecipient, 0);
-                Log.d(TAG, "onServiceConnected: client");
+
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
@@ -67,7 +69,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         @Override
         public void onServiceDisconnected(ComponentName name) {
             connected = false;
-            Log.d(TAG, "onServiceDisconnected: ");
+            Log.d(TAG, "------------------------------onServiceDisconnected: ");
             bindService();
         }
     };
@@ -87,7 +89,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void bindService() {
-        Log.d(TAG, "bindService: ");
+        Log.d(TAG, "------------------------------bindService: ");
         Intent intent = new Intent();
         intent.setPackage("com.example.aidlserver");
         intent.setAction("qqq.aaa.zzz");
@@ -101,11 +103,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 try {
                     String msg = serverInterface.getMsgFromServer();
                     result.setText(msg);
-                    Log.d(TAG, "onClick: " + msg);
+                    Log.d(TAG, "------------------------------onClick: " + msg);
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
-
                 break;
 
         }

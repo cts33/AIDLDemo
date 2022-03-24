@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.RemoteException;
 import android.util.Log;
 import android.view.View;
@@ -84,14 +85,14 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     ClientCallback clientCallback = mService.getClientCallback();
                     if (clientCallback == null) {
-                        Log.d(TAG, "onClick: (clientCallback==null)");
+                        Log.d(TAG, "---------------- ------------------onClick: (clientCallback==null)");
                         return;
                     }
                     clientMsg = clientCallback.getMsgFromClient();
                     mService.unRegister(clientCallback);
 
                     mResult.setText(clientMsg);
-                    Log.d(TAG, "onClick: clientMsg=" + clientMsg);
+                    Log.d(TAG, "------------------------ ------------onClick: clientMsg=" + clientMsg+"main thread="+(Looper.getMainLooper()==Looper.myLooper()));
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
@@ -102,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "mainActivity";
 
     private void bindService() {
-        Log.d(TAG, "bindService: ");
+        Log.d(TAG, "-----------------------------------------------------bindService: ");
         Intent intent = new Intent();
         intent.setPackage("com.example.aidlserver");
         intent.setAction("qqq.aaa.zzz");

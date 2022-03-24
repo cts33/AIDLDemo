@@ -17,22 +17,24 @@ public class AidlService extends Service {
     private static final String TAG = "AidlService";
     private boolean connected;
     private final RemoteCallbackList<ClientCallback> mCallbackList = new RemoteCallbackList<ClientCallback>(){
-        @Override
-        public void onCallbackDied(ClientCallback callback) {
-            super.onCallbackDied(callback);
-            Log.d(TAG, "--------------------------onCallbackDied: "+callback);
-
-
-        }
+//        @Override
+//        public void onCallbackDied(ClientCallback callback) {
+//            super.onCallbackDied(callback);
+//            Log.d(TAG, "--------------------------onCallbackDied: "+callback);
+//
+//
+//        }
     };
 
     @Override
     public void onCreate() {
         super.onCreate();
+        Log.d(TAG, "------------ ----------------------onCreate: ");
         connected = true;
     }
 
     public ClientCallback getClientCallback() {
+        Log.d(TAG, "------------------------------getClientCallback: ");
         ClientCallback temp = null;
         int i = mCallbackList.beginBroadcast();
         while (i > 0) {
@@ -48,12 +50,13 @@ public class AidlService extends Service {
 
         @Override
         public String getMsgFromServer() throws RemoteException {
+            Log.d(TAG, "------------------------------getMsgFromServer: ");
             return "hello ,我是 server的数据";
         }
 
         @Override
         public void registerClientCallback(ClientCallback clientCallback) throws RemoteException {
-
+            Log.d(TAG, "------------------------------registerClientCallback: ");
             if (clientCallback != null) {
                 mCallbackList.register(clientCallback);
             }
@@ -66,7 +69,7 @@ public class AidlService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
-
+        Log.d(TAG, "------------------------------onBind: ");
         return new ServerStub();
     }
 
@@ -74,9 +77,12 @@ public class AidlService extends Service {
     public void onDestroy() {
         super.onDestroy();
         connected = false;
+
+        Log.d(TAG, "------------------------------onDestroy: ");
     }
 
     public void unRegister(ClientCallback mclientCallback) {
+        Log.d(TAG, "------------------------------unRegister: ");
         if (mclientCallback != null) {
             mCallbackList.unregister(mclientCallback);
         }
