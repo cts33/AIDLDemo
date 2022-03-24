@@ -16,12 +16,14 @@ public class AidlService extends Service {
     private final RemoteCallbackList<ClientCallback> mCallbackList = new RemoteCallbackList<>();
 
     public ClientCallback getClientCallback() {
+        ClientCallback temp = null;
         int i = mCallbackList.beginBroadcast();
         while (i > 0) {
-            return mCallbackList.getBroadcastItem(i);
+            i--;
+            temp =  mCallbackList.getBroadcastItem(i);
         }
         mCallbackList.finishBroadcast();
-        return null;
+        return temp;
     }
 
     class ServerStub extends ServerInterface.Stub {
