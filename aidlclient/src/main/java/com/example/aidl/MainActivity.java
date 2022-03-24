@@ -1,7 +1,5 @@
 package com.example.aidl;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -11,28 +9,66 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
 import android.view.View;
+import android.widget.TextView;
 
+import androidx.appcompat.app.AppCompatActivity;
 
-import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     private static final String TAG = "MainActivity";
-    IMyAidlInterface iMyAidlInterface;
+    private ServerInterface serverInterface;
     private boolean connected;
+    private TextView result;
 
+    ClientCallback clientCallback = new ClientCallback.Stub() {
+        @Override
+        public String getMsgFromClient() throws RemoteException {
+            return "hello 我是client的数据";
+        }
+    };
+    IBinder.DeathRecipient deadthRecipient = new IBinder.DeathRecipient(){
+
+        @Override
+        public void binderDied() {
+            Timer timer =new Timer();
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+
+                }
+            },3000);
+
+            while(connected){
+                timer.cancel();
+                timer =null;
+            }
+        }
+    };
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            iMyAidlInterface = IMyAidlInterface.Stub.asInterface(service);
+            try {
+                service.linkToDeath(deadthRecipient,0);
+                serverInterface = ServerInterface.Stub.asInterface(service);
+                serverInterface.registerClientCallback(clientCallback);
+                Log.d(TAG, "onServiceConnected: client");
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
             connected = true;
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
             connected = false;
+            Log.d(TAG, "onServiceDisconnected: ");
+            bindService();
         }
     };
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,8 +76,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
 
         findViewById(R.id.click).setOnClickListener(this);
-        findViewById(R.id.click1).setOnClickListener(this);
-        findViewById(R.id.click2).setOnClickListener(this);
+        result = findViewById(R.id.result);
 
         bindService();
 
@@ -60,36 +95,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         switch (v.getId()) {
             case R.id.click:
                 try {
-                    Book book = new Book("C++");
-                    book.setName("java=" + v.getId());
-                    iMyAidlInterface.addBookInOut(book);
-                    Log.d(TAG, "onClick: addBookInOut");
+                    String msg = serverInterface.getMsgFromServer();
+                    result.setText(msg);
+                    Log.d(TAG, "onClick: " + msg);
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
-                break;
-            case R.id.click1:
-                String str = null;
-                try {
-                    str = iMyAidlInterface.getString();
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-                Log.d(TAG, "onClick: getString=" + str);
-                break;
-            case R.id.click2:
-                List<Book> bookList = null;
-                try {
-                    bookList = iMyAidlInterface.getBookList();
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-                for (Book book : bookList) {
-                    Log.d(TAG, "   book=" + book.getName());
 
-                }
-                Log.d(TAG, "onClick: getBookList");
                 break;
+
         }
     }
 }

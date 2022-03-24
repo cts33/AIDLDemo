@@ -15,7 +15,7 @@
             android:exported="true">
 
             <intent-filter>
-                <action android:name="android.intent.action.RESPOND_VIA_MESSAGE"></action>
+
                 <action android:name="qqq.aaa.zzz"></action>
             </intent-filter>
         </service>
