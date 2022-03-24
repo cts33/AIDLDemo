@@ -39,7 +39,6 @@ public class MainActivity extends AppCompatActivity {
 
             while (connected) {
                 if (timer != null) {
-
                     timer.cancel();
                     timer = null;
                 }
@@ -81,7 +80,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 
-
                 String clientMsg = null;
                 try {
                     ClientCallback clientCallback = mService.getClientCallback();
@@ -90,6 +88,8 @@ public class MainActivity extends AppCompatActivity {
                         return;
                     }
                     clientMsg = clientCallback.getMsgFromClient();
+                    mService.unRegister(clientCallback);
+
                     mResult.setText(clientMsg);
                     Log.d(TAG, "onClick: clientMsg=" + clientMsg);
                 } catch (RemoteException e) {

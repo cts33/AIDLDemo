@@ -14,10 +14,14 @@ import java.util.List;
 public class AidlService extends Service {
     private static final String TAG = "AidlService";
     private final RemoteCallbackList<ClientCallback> mCallbackList = new RemoteCallbackList<>();
-    private ClientCallback mclientCallback;
 
     public ClientCallback getClientCallback() {
-        return mclientCallback;
+        int i = mCallbackList.beginBroadcast();
+        while (i > 0) {
+            return mCallbackList.getBroadcastItem(i);
+        }
+        mCallbackList.finishBroadcast();
+        return null;
     }
 
     class ServerStub extends ServerInterface.Stub {
@@ -30,9 +34,8 @@ public class AidlService extends Service {
         @Override
         public void registerClientCallback(ClientCallback clientCallback) throws RemoteException {
 
-            mclientCallback = clientCallback;
-            if (mclientCallback != null) {
-                mCallbackList.register(mclientCallback);
+            if (clientCallback != null) {
+                mCallbackList.register(clientCallback);
             }
         }
 
@@ -50,10 +53,13 @@ public class AidlService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+
+    }
+
+    public void unRegister(ClientCallback mclientCallback) {
         if (mclientCallback != null) {
             mCallbackList.unregister(mclientCallback);
         }
     }
-
 
 }
