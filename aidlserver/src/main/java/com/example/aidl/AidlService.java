@@ -10,10 +10,27 @@ import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class AidlService extends Service {
     private static final String TAG = "AidlService";
-    private final RemoteCallbackList<ClientCallback> mCallbackList = new RemoteCallbackList<>();
+    private boolean connected;
+    private final RemoteCallbackList<ClientCallback> mCallbackList = new RemoteCallbackList<ClientCallback>(){
+        @Override
+        public void onCallbackDied(ClientCallback callback) {
+            super.onCallbackDied(callback);
+            Log.d(TAG, "--------------------------onCallbackDied: "+callback);
+
+
+        }
+    };
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        connected = true;
+    }
 
     public ClientCallback getClientCallback() {
         ClientCallback temp = null;
@@ -23,6 +40,7 @@ public class AidlService extends Service {
             temp =  mCallbackList.getBroadcastItem(i);
         }
         mCallbackList.finishBroadcast();
+
         return temp;
     }
 
@@ -55,7 +73,7 @@ public class AidlService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-
+        connected = false;
     }
 
     public void unRegister(ClientCallback mclientCallback) {
