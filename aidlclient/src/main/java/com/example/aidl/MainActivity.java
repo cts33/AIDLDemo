@@ -28,21 +28,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return "hello 我是client的数据";
         }
     };
-    IBinder.DeathRecipient deadthRecipient = new IBinder.DeathRecipient(){
+    IBinder.DeathRecipient deadthRecipient = new IBinder.DeathRecipient() {
 
         @Override
         public void binderDied() {
-            Timer timer =new Timer();
+            Log.d(TAG, "run----------------------------------------:binderDied ");
+            Timer timer = new Timer();
             timer.schedule(new TimerTask() {
                 @Override
                 public void run() {
-
+                    bindService();
                 }
-            },3000);
+            }, 3000);
 
-            while(connected){
-                timer.cancel();
-                timer =null;
+            while (connected) {
+                if (timer != null) {
+                    timer.cancel();
+                    timer = null;
+                }
             }
         }
     };
@@ -51,9 +54,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             try {
-                service.linkToDeath(deadthRecipient,0);
                 serverInterface = ServerInterface.Stub.asInterface(service);
                 serverInterface.registerClientCallback(clientCallback);
+                service.linkToDeath(deadthRecipient, 0);
                 Log.d(TAG, "onServiceConnected: client");
             } catch (RemoteException e) {
                 e.printStackTrace();
@@ -84,6 +87,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void bindService() {
+        Log.d(TAG, "bindService: ");
         Intent intent = new Intent();
         intent.setPackage("com.example.aidlserver");
         intent.setAction("qqq.aaa.zzz");

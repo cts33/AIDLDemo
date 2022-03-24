@@ -19,38 +19,43 @@ import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity {
     private Button mClick;
+    private boolean connected;
     private TextView mResult;
-    AIDLServerStub aidlServerStub;
-    IBinder.DeathRecipient deadthRecipient = new IBinder.DeathRecipient() {
+    private AidlService.ServerStub serverStub;
+    private AidlService mService;
 
+    private IBinder.DeathRecipient deadthRecipient = new IBinder.DeathRecipient() {
         @Override
         public void binderDied() {
+            Log.d(TAG, "------------------------------------------------------run: binderDied");
             Timer timer = new Timer();
             timer.schedule(new TimerTask() {
                 @Override
                 public void run() {
-
+                    // TODO 启动服务
+                    bindService();
                 }
             }, 3000);
 
             while (connected) {
-                timer.cancel();
-                timer = null;
+                if (timer != null) {
+
+                    timer.cancel();
+                    timer = null;
+                }
             }
         }
     };
 
-    private boolean connected;
+
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            try {
-                service.linkToDeath(deadthRecipient, 0);
-                ServerInterface serverInterface = ServerInterface.Stub.asInterface(service);
-                aidlServerStub = (AIDLServerStub) serverInterface.asBinder();
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
+
+            serverStub = (AidlService.ServerStub) ServerInterface.Stub.asInterface(service);
+            serverStub.linkToDeath(deadthRecipient, 0);
+            mService = serverStub.getService();
+
             connected = true;
         }
 
@@ -75,16 +80,17 @@ public class MainActivity extends AppCompatActivity {
         mClick.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.d(TAG, "onClick: ");
+
 
                 String clientMsg = null;
                 try {
-                    ClientCallback clientCallback = aidlServerStub.getClientCallback();
-                    if (clientCallback==null){
+                    ClientCallback clientCallback = mService.getClientCallback();
+                    if (clientCallback == null) {
                         Log.d(TAG, "onClick: (clientCallback==null)");
                         return;
                     }
                     clientMsg = clientCallback.getMsgFromClient();
+                    mResult.setText(clientMsg);
                     Log.d(TAG, "onClick: clientMsg=" + clientMsg);
                 } catch (RemoteException e) {
                     e.printStackTrace();
@@ -96,6 +102,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "mainActivity";
 
     private void bindService() {
+        Log.d(TAG, "bindService: ");
         Intent intent = new Intent();
         intent.setPackage("com.example.aidlserver");
         intent.setAction("qqq.aaa.zzz");
