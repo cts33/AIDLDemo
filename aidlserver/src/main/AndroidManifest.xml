@@ -12,6 +12,7 @@
         <service
             android:name="com.example.aidl.AidlService"
             android:enabled="true"
+
             android:exported="true">
 
             <intent-filter>

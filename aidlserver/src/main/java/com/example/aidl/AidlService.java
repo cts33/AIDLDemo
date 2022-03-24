@@ -17,13 +17,13 @@ public class AidlService extends Service {
     private static final String TAG = "AidlService";
     private boolean connected;
     private final RemoteCallbackList<ClientCallback> mCallbackList = new RemoteCallbackList<ClientCallback>(){
-//        @Override
-//        public void onCallbackDied(ClientCallback callback) {
-//            super.onCallbackDied(callback);
-//            Log.d(TAG, "--------------------------onCallbackDied: "+callback);
-//
-//
-//        }
+        @Override
+        public void onCallbackDied(ClientCallback callback) {
+            super.onCallbackDied(callback);
+            Log.d(TAG, "--------------------------onCallbackDied: "+callback);
+
+
+        }
     };
 
     @Override
