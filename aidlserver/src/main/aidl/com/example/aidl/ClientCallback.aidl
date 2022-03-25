@@ -2,5 +2,6 @@
 package com.example.aidl;
 
 interface ClientCallback {
-    String getMsgFromClient();
+    /** 发送json格式数据给client**/
+     void sendMsgToClient(String json);
 }

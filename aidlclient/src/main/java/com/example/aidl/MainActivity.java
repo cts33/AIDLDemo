@@ -23,10 +23,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private TextView result;
 
     ClientCallback clientCallback = new ClientCallback.Stub() {
+
         @Override
-        public String getMsgFromClient() throws RemoteException {
-            Log.d(TAG, "------------------------------getMsgFromClient: ");
-            return "hello 我是client的数据";
+        public void sendMsgToClient(String json) throws RemoteException {
+            Log.d(TAG, "---------------------sendMsgToClient: "+json);
         }
     };
     IBinder.DeathRecipient deadthRecipient = new IBinder.DeathRecipient() {
@@ -57,7 +57,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             try {
                 Log.d(TAG, "------------------------------onServiceConnected: ");
                 serverInterface = ServerInterface.Stub.asInterface(service);
-                serverInterface.registerClientCallback(clientCallback);
+
+                serverInterface.registerCallbackToServer("com.example.client",clientCallback);
                 service.linkToDeath(deadthRecipient, 0);
 
             } catch (RemoteException e) {
@@ -101,9 +102,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         switch (v.getId()) {
             case R.id.click:
                 try {
-                    String msg = serverInterface.getMsgFromServer();
-                    result.setText(msg);
-                    Log.d(TAG, "------------------------------onClick: " + msg);
+                     serverInterface.sendMsgToServer("this is client msg,server please receiver");
+                    Log.d(TAG, "------------------------------onClick: ");
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }

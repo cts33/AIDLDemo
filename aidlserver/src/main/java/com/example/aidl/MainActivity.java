@@ -1,5 +1,6 @@
 package com.example.aidl;
 
+import android.app.Application;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -22,56 +23,18 @@ public class MainActivity extends AppCompatActivity {
     private Button mClick;
     private boolean connected;
     private TextView mResult;
-    private AidlService.ServerStub serverStub;
-    private AidlService mService;
-
-    private IBinder.DeathRecipient deadthRecipient = new IBinder.DeathRecipient() {
-        @Override
-        public void binderDied() {
-            Log.d(TAG, "------------------------------------------------------run: binderDied");
-            Timer timer = new Timer();
-            timer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    // TODO 启动服务
-                    bindService();
-                }
-            }, 3000);
-
-            while (connected) {
-                if (timer != null) {
-                    timer.cancel();
-                    timer = null;
-                }
-            }
-        }
-    };
-
-
-    private ServiceConnection serviceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-
-            serverStub = (AidlService.ServerStub) ServerInterface.Stub.asInterface(service);
-            serverStub.linkToDeath(deadthRecipient, 0);
-            mService = serverStub.getService();
-
-            connected = true;
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            connected = false;
-            bindService();
-        }
-    };
+    private ServerInterface serverStub;
+    private ServerService mService;
+    BindManager bindManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initViews();
-        bindService();
+        bindManager = BindManager.getInstance((Application) MainActivity.this.getApplicationContext());
+
+
     }
 
     private void initViews() {
@@ -81,32 +44,17 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 
-                String clientMsg = null;
-                try {
-                    ClientCallback clientCallback = mService.getClientCallback();
-                    if (clientCallback == null) {
-                        Log.d(TAG, "---------------- ------------------onClick: (clientCallback==null)");
-                        return;
-                    }
-                    clientMsg = clientCallback.getMsgFromClient();
-                    mService.unRegister(clientCallback);
+                String json = "{\"method\":\"invoke\",\"params\":[{\"key1\":\"value1\"}],\"Boolean\":\"false\"}";
 
-                    mResult.setText(clientMsg);
-                    Log.d(TAG, "------------------------ ------------onClick: clientMsg=" + clientMsg+"main thread="+(Looper.getMainLooper()==Looper.myLooper()));
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
+                bindManager.sendMsgToClient(json);
+
+//                mResult.setText(clientMsg);
+                Log.d(TAG, "------------------------ ------------onClick: main thread=" + (Looper.getMainLooper() == Looper.myLooper()));
             }
         });
     }
 
     private static final String TAG = "mainActivity";
 
-    private void bindService() {
-        Log.d(TAG, "-----------------------------------------------------bindService: ");
-        Intent intent = new Intent();
-        intent.setPackage("com.example.aidlserver");
-        intent.setAction("qqq.aaa.zzz");
-        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
-    }
+
 }

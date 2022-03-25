@@ -113,7 +113,7 @@ public class AidlService extends Service {
 
 ```xml
         <service
-            android:name="com.example.aidl.AidlService"
+            android:name="com.example.aidl.ServerService"
             android:enabled="true"
             android:exported="true">
             <intent-filter>

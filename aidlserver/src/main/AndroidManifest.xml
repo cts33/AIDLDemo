@@ -10,7 +10,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AIDLDemo">
         <service
-            android:name="com.example.aidl.AidlService"
+            android:name="com.example.aidl.ServerService"
             android:enabled="true"
 
             android:exported="true">
