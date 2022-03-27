@@ -104,7 +104,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.click:
                 try {
                     Log.d(TAG, "------------------------------onClick: ");
-                    serverInterface.sendMsgToServer("this is client msg,server please receiver");
+                    serverInterface.sendMsgToServer("com.package.test","this is client msg,server please receiver");
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }

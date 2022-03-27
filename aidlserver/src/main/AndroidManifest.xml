@@ -12,7 +12,7 @@
         <service
             android:name="com.example.aidl.ServerService"
             android:enabled="true"
-
+android:process=":core"
             android:exported="true">
 
             <intent-filter>

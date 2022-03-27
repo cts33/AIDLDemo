@@ -49,7 +49,7 @@ public class BindManager {
 
     private static boolean connected;
 
-    public static void unRegister() {
+    public static void clearCallbacks() {
         Log.d(TAG, "------------------------------unRegister: ");
         callbackHashMap.clear();
     }
@@ -57,6 +57,7 @@ public class BindManager {
     private static IBinder.DeathRecipient deadthRecipient = new IBinder.DeathRecipient() {
         @Override
         public void binderDied() {
+            clearCallbacks();
             Log.d(TAG, "------------------------------------------------------run: binderDied");
             Timer timer = new Timer();
             timer.schedule(new TimerTask() {
@@ -95,6 +96,7 @@ public class BindManager {
         public void onServiceDisconnected(ComponentName name) {
             Log.d(TAG, "---------------------------onServiceDisconnected: ");
             connected = false;
+            clearCallbacks();
             startServer();
         }
     };

@@ -17,7 +17,7 @@ public class AppletBinder extends ServerInterface.Stub {
     }
 
     @Override
-    public boolean sendMsgToServer(String json) throws RemoteException {
+    public boolean sendMsgToServer(String packageName,String json) throws RemoteException {
         Log.d(TAG, "-------------sendMsgToServer: "+json);
         if (!TextUtils.isEmpty(json)) {
             mBindManager.receiverClientMsg(json);
