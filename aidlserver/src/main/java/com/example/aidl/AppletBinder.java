@@ -17,11 +17,13 @@ public class AppletBinder extends ServerInterface.Stub {
     }
 
     @Override
-    public void sendMsgToServer(String json) throws RemoteException {
-        Log.d(TAG, "-------------sendMsgToServer: ");
+    public boolean sendMsgToServer(String json) throws RemoteException {
+        Log.d(TAG, "-------------sendMsgToServer: "+json);
         if (!TextUtils.isEmpty(json)) {
             mBindManager.receiverClientMsg(json);
+            return true;
         }
+        return false;
     }
 
     @Override

@@ -25,8 +25,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     ClientCallback clientCallback = new ClientCallback.Stub() {
 
         @Override
-        public void sendMsgToClient(String json) throws RemoteException {
+        public boolean sendMsgToClient(String json) throws RemoteException {
             Log.d(TAG, "---------------------sendMsgToClient: "+json);
+            return true;
         }
     };
     IBinder.DeathRecipient deadthRecipient = new IBinder.DeathRecipient() {
@@ -102,8 +103,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         switch (v.getId()) {
             case R.id.click:
                 try {
-                     serverInterface.sendMsgToServer("this is client msg,server please receiver");
                     Log.d(TAG, "------------------------------onClick: ");
+                    serverInterface.sendMsgToServer("this is client msg,server please receiver");
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }

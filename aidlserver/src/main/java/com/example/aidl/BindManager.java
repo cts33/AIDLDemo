@@ -80,6 +80,7 @@ public class BindManager {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
 
+            Log.d(TAG, "---------------------------onServiceConnected: ");
             serverStub = ServerInterface.Stub.asInterface(service);
             try {
                 serverStub.asBinder().linkToDeath(deadthRecipient, 0);
@@ -87,10 +88,12 @@ public class BindManager {
                 e.printStackTrace();
             }
             connected = true;
+
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
+            Log.d(TAG, "---------------------------onServiceDisconnected: ");
             connected = false;
             startServer();
         }
@@ -109,7 +112,7 @@ public class BindManager {
     public static void receiverClientMsg(String json) {
 
         // TODO 接受到客户端发来的信息，未来要通知小程序框架，执行某操作
-        Log.d(TAG, "receiverClientMsg: ");
+        Log.d(TAG, "receiverClientMsg: " + json);
 
 
     }
@@ -120,6 +123,8 @@ public class BindManager {
      * @param json
      */
     public static void sendMsgToClient(String json) {
+
+        Log.d(TAG, "------------------sendMsgToClient: " + json);
         ClientCallback callback;
         try {
             Set<Map.Entry<String, ClientCallback>> entries = callbackHashMap.entrySet();
@@ -128,7 +133,7 @@ public class BindManager {
             while (iterator.hasNext()) {
                 Map.Entry<String, ClientCallback> next = iterator.next();
                 callback = next.getValue();
-                if (callback==null){
+                if (callback == null) {
                     continue;
                 }
                 callback.sendMsgToClient(json);
@@ -140,7 +145,7 @@ public class BindManager {
 
 
     private static void startServer() {
-        Log.d(TAG, "-----------------------------------------------------bindService: ");
+        Log.d(TAG, "-----------------------------------------------------startServer: ");
         Intent intent = new Intent();
         intent.setPackage(PACKAGE);
         intent.setAction(ACTION);

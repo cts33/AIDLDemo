@@ -44,12 +44,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 
+                Log.d(TAG, "------------------------ ------------onClick: main thread=" + (Looper.getMainLooper() == Looper.myLooper()));
                 String json = "{\"method\":\"invoke\",\"params\":[{\"key1\":\"value1\"}],\"Boolean\":\"false\"}";
 
                 bindManager.sendMsgToClient(json);
 
 //                mResult.setText(clientMsg);
-                Log.d(TAG, "------------------------ ------------onClick: main thread=" + (Looper.getMainLooper() == Looper.myLooper()));
             }
         });
     }
