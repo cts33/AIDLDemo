@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.Parcel;
 import android.os.RemoteException;
 import android.util.Log;
 import android.view.View;
@@ -52,11 +53,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     };
 
+    IBinder mService ;
+
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             try {
                 Log.d(TAG, "------------------------------onServiceConnected: ");
+                mService = service;
                 serverInterface = ServerInterface.Stub.asInterface(service);
 
                 serverInterface.registerCallbackToServer("com.example.client",clientCallback);
@@ -104,7 +108,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.click:
                 try {
                     Log.d(TAG, "------------------------------onClick: ");
-                    serverInterface.sendMsgToServer("com.package.test","this is client msg,server please receiver");
+//                    serverInterface.sendMsgToServer("com.package.test ","this is client msg,server please receiver");
+
+
+
+                    Parcel data = Parcel.obtain();
+                    Parcel reply = Parcel.obtain();
+                    data.writeString("hello this is client");
+                    data.writeInterfaceToken("xxx");
+
+                    mService.transact(0x001,data,reply,1);
+
+                    reply.readException();
+                    Log.d(TAG, "onClick: result: "+reply.readString());
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
