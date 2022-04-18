@@ -57,6 +57,7 @@ AIDL定义`客户端与服务均认可的编程接`口，以便二者使用进�
 
 ServerInterface.aidl
 ```java
+
 interface ServerInterface {
 
     /** client调用server ,传递数据json**/
@@ -64,16 +65,17 @@ interface ServerInterface {
     /** 注册一个callback ,用于回调给client数据**/
     void registerCallbackToServer(String packageName,in ClientCallback clientCallback);
 
+    void unRegisterCallbackToServer(in ClientCallback clientCallback);
+
 }
 ```
 ClientCallback.aidl
 ```java
-import com.example.aidl.Book;
+package com.example.aidl;
 
 interface ClientCallback {
-    /** 发送json格式数据给client**/
-     boolean sendMsgToClient(String json);
-   //boolean sendMsgToClient(Book book);
+    /** 来自server的调用**/
+     boolean onServerAction(String json);
 }
 ```
 如果内部需要传递对象Book,就需要序列化。注意导包Book
@@ -106,62 +108,129 @@ parcelable Book;
 ServerService.java
 
 ```java
- public class ServerService extends Service {
-    private static final String TAG = "AidlService";
 
-    private AppletBinder appletBinder = null;
+public class ServerService extends Service {
+    private static final String TAG = "AidlService";
+    private BindManager mBindManager;
+    private ServerInterface.Stub serverInterface = new ServerInterface.Stub() {
+        @Override
+        public boolean sendMsgToServer(String packageName, String json) throws RemoteException {
+            Log.d(TAG, "-------------sendMsgToServer: " + json);
+            if (!TextUtils.isEmpty(json)) {
+                mBindManager.receiverClientMsg(json);
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public void registerCallbackToServer(String packageName, ClientCallback clientCallback) throws RemoteException {
+            Log.d(TAG, "----------------registerCallbackToServer: ");
+            if (!TextUtils.isEmpty(packageName) && clientCallback != null) {
+                mBindManager.registerClientCallback(packageName, clientCallback);
+            }
+        }
+
+        @Override
+        public void unRegisterCallbackToServer(ClientCallback clientCallback) throws RemoteException {
+            Log.d(TAG, "----------------registerCallbackToServer: ");
+            if (clientCallback != null) {
+                mBindManager.unRegisterClientCallback(clientCallback);
+            }
+        }
+    };
 
     @Override
     public void onCreate() {
         super.onCreate();
-
-        Context context = this.getApplicationContext();
-
-        appletBinder = new AppletBinder(BindManager.getInstance((Application) context));
+        mBindManager = BindManager.getInstance(this);
         Log.d(TAG, "------------ ----------------onCreate: ");
     }
 
     @Override
     public IBinder onBind(Intent intent) {
         Log.d(TAG, "------------------------------onBind: ");
-        return appletBinder;
+        return serverInterface;
     }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mBindManager.killRemoteBackList();
+    }
+
 ```
 
 ```java
-package com.example.aidl;
 
-import android.os.RemoteException;
-import android.text.TextUtils;
-import android.util.Log;
+public class BindManager {
+    private static final String TAG = "BindManager";
 
-/**
- * @description
- * @mail chentaishan@aliyun.com
- * @date 2022/3/25
- */
-public class AppletBinder extends ServerInterface.Stub {
-    private static final String TAG = AppletBinder.class.getSimpleName();
-    private BindManager mBindManager;
-    public AppletBinder(BindManager mBindManager) {
-        this.mBindManager = mBindManager;
+    private static BindManager mBindManager = null;
+
+    private static Context context;
+    private static RemoteCallbackList<ClientCallback> remoteCallbackList = new RemoteCallbackList<>();
+
+    private BindManager(Context context) {
+        this.context = context;
     }
 
-    @Override
-    public boolean sendMsgToServer(String packageName,String json) throws RemoteException {
-        Log.d(TAG, "-------------sendMsgToServer: "+json);
-        if (!TextUtils.isEmpty(json)) {
-            mBindManager.receiverClientMsg(json);
-            return true;
+    public static BindManager getInstance(Context context) {
+        if (mBindManager == null) {
+            synchronized (BindManager.class) {
+                if (mBindManager == null)
+                    mBindManager = new BindManager(context);
+            }
         }
-        return false;
+        return mBindManager;
     }
 
-    @Override
-    public void registerCallbackToServer(String packageName, ClientCallback clientCallback) throws RemoteException {
-        Log.d(TAG, "----------------registerCallbackToServer: ");
-        if (!TextUtils.isEmpty(packageName) && clientCallback != null) {
-            mBindManager.registerClientCallback(packageName, clientCallback);
+    public static void killRemoteBackList() {
+        Log.d(TAG, "------------------------------clearCallbacks: ");
+        remoteCallbackList.kill();
+    }
+
+    public static void registerClientCallback(String packageName, ClientCallback clientCallback) {
+        Log.d(TAG, "------------------------------registerClientCallback: " + packageName);
+        remoteCallbackList.register(clientCallback, packageName);
+    }
+
+    public static void unRegisterClientCallback(ClientCallback clientCallback) {
+        Log.d(TAG, "------------------------------unregisterClientCallback: ");
+        remoteCallbackList.unregister(clientCallback);
+    }
+
+    /**
+     * 服务端接受客户端的信息
+     *
+     * @param json
+     */
+    public static void receiverClientMsg(String json) {
+
+        // TODO 接受到客户端发来的信息，未来要通知小程序框架，执行某操作
+        Log.d(TAG, "receiverClientMsg: " + json);
+    }
+
+    /**
+     * 服务端发送信息给客户端
+     *
+     * @param json
+     */
+    public static void sendMsgToClient(String packageName, String json) {
+        Log.d(TAG, "------------------sendMsgToClient: " + json);
+        try {
+            int i = remoteCallbackList.beginBroadcast();
+            while (i > 0) {
+                i--;
+                String cookie = (String) remoteCallbackList.getBroadcastCookie(i);
+                if (packageName == cookie) {
+                    ClientCallback callback = remoteCallbackList.getBroadcastItem(i);
+                    callback.onServerAction(json);
+                }
+            }
+            remoteCallbackList.finishBroadcast();
+        } catch (RemoteException e) {
+            e.printStackTrace();
         }
     }
 }
@@ -180,147 +249,6 @@ public class AppletBinder extends ServerInterface.Stub {
             </intent-filter>
         </service>
 ```
-为了有一个统一对接外部的接口，需要创建一个Manager。
-
-BindManager.java
-```java
-
-public class BindManager {
-    private static final String TAG = "BindManager";
-
-    public static final Object oo = new Object();
-    private static BindManager mBindManager = null;
-
-    public static final String ACTION = "qqq.aaa.zzz";
-    public static final String PACKAGE = "com.example.aidlserver";
-    private static HashMap<String, ClientCallback> callbackHashMap = new HashMap<>();
-    private static Application context;
-
-    private BindManager(Application context) {
-        this.context = context;
-    }
-
-    public static BindManager getInstance(Application context) {
-        if (mBindManager == null) {
-            synchronized (oo) {
-                if (mBindManager == null)
-                    mBindManager = new BindManager(context);
-            }
-        }
-
-        return mBindManager;
-    }
-
-    private static boolean connected;
-
-    public static void clearCallbacks() {
-        Log.d(TAG, "------------------------------unRegister: ");
-        callbackHashMap.clear();
-    }
-
-    private static IBinder.DeathRecipient deadthRecipient = new IBinder.DeathRecipient() {
-        @Override
-        public void binderDied() {
-            clearCallbacks();
-            Log.d(TAG, "------------------------------------------------------run: binderDied");
-            Timer timer = new Timer();
-            timer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    // TODO 启动服务
-                    startServer();
-                }
-            }, 3000);
-
-            while (connected) {
-                if (timer != null) {
-                    timer.cancel();
-                    timer = null;
-                }
-            }
-        }
-    };
-    private static ServerInterface serverStub;
-    private static ServiceConnection serviceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-
-            Log.d(TAG, "---------------------------onServiceConnected: ");
-            serverStub = ServerInterface.Stub.asInterface(service);
-            try {
-                serverStub.asBinder().linkToDeath(deadthRecipient, 0);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-            connected = true;
-
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            Log.d(TAG, "---------------------------onServiceDisconnected: ");
-            connected = false;
-            clearCallbacks();
-            startServer();
-        }
-    };
-
-    public static void registerClientCallback(String packageName, ClientCallback clientCallback) {
-        Log.d(TAG, "------------------------------registerClientCallback: ");
-        callbackHashMap.put(packageName, clientCallback);
-    }
-
-    /**
-     * 服务端接受客户端的信息
-     *
-     * @param json
-     */
-    public static void receiverClientMsg(String json) {
-
-        // TODO 接受到客户端发来的信息，未来要通知小程序框架，执行某操作
-        Log.d(TAG, "receiverClientMsg: " + json);
-
-
-    }
-
-    /**
-     * 服务端发送信息给客户端
-     *
-     * @param json
-     */
-    public static void sendMsgToClient(String json) {
-
-        Log.d(TAG, "------------------sendMsgToClient: " + json);
-        ClientCallback callback;
-        try {
-            Set<Map.Entry<String, ClientCallback>> entries = callbackHashMap.entrySet();
-            Iterator<Map.Entry<String, ClientCallback>> iterator = entries.iterator();
-
-            while (iterator.hasNext()) {
-                Map.Entry<String, ClientCallback> next = iterator.next();
-                callback = next.getValue();
-                if (callback == null) {
-                    continue;
-                }
-                callback.sendMsgToClient(json);
-            }
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    private static void startServer() {
-        Log.d(TAG, "-----------------------------------------------------startServer: ");
-        Intent intent = new Intent();
-        intent.setPackage(PACKAGE);
-        intent.setAction(ACTION);
-        context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
-    }
-}
-
-```
-
 
 
 
@@ -328,37 +256,14 @@ public class BindManager {
 
 ## 1.创建客户端的module，并且创建aidl文件，注意此处aidl的`包名和文件名要和服务端`保持一致。
 
-```java
-package com.example.aidl;
 
-import com.example.aidl.ClientCallback;
-
-interface ServerInterface {
-
-    /** client调用server ,传递数据json**/
-    boolean sendMsgToServer(String packageName,String json);
-    /** 注册一个callback ,用于回调给client数据**/
-    void registerCallbackToServer(String packageName,in ClientCallback clientCallback);
-
-}
-
-
-
-// ServerInterface.aidl
-package com.example.aidl;
-
-interface ClientCallback {
-    /** 发送json格式数据给client**/
-     boolean sendMsgToClient(String json);
-}
-```
 
 ## 2.开启绑定服务
 
 创建一个界面，首先绑定service ，然后创建serviceConnection负责连接服务对象，同时创建一个callback对象和一个DeathRecipient对象，还有对接服务端的接口对象。
 
 ClientCallback：负责数据的回调，接收服务端的数据
-DeathRecipient：当服务端被杀死的，该方法会触发，然后再次启动服务。其实就是避免服务端停止。
+DeathRecipient：当客户端被杀死的，该方法会触发，然后再次启动服务。其实就是避免服务端停止。
 
 ServerInterface：接口对象，里面包含接口的api,负责客户端和服务端交互
 
@@ -370,11 +275,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private boolean connected;
     private TextView result;
 
-    ClientCallback clientCallback = new ClientCallback.Stub() {
-
+    private ClientCallback clientCallback = new ClientCallback.Stub() {
         @Override
-        public boolean sendMsgToClient(String json) throws RemoteException {
-            Log.d(TAG, "---------------------sendMsgToClient: "+json);
+        public boolean onServerAction(String json) throws RemoteException {
+            Log.d(TAG, "---------------------sendMsgToClient: " + json);
             return true;
         }
     };
@@ -400,14 +304,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     };
 
+
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             try {
                 Log.d(TAG, "------------------------------onServiceConnected: ");
                 serverInterface = ServerInterface.Stub.asInterface(service);
-
-                serverInterface.registerCallbackToServer("com.example.client",clientCallback);
+                serverInterface.registerCallbackToServer(getPackageName(), clientCallback);
                 service.linkToDeath(deadthRecipient, 0);
 
             } catch (RemoteException e) {
@@ -420,7 +324,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         public void onServiceDisconnected(ComponentName name) {
             connected = false;
             Log.d(TAG, "------------------------------onServiceDisconnected: ");
-            bindService();
+
         }
     };
 
@@ -434,38 +338,165 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         result = findViewById(R.id.result);
 
         bindService();
-
-
     }
 
     private void bindService() {
         Log.d(TAG, "------------------------------bindService: ");
         Intent intent = new Intent();
         intent.setPackage("com.example.aidlserver");
+//        intent.setComponent(new ComponentName("com.example.aidl","com.example.aidl.ServerService"));
         intent.setAction("qqq.aaa.zzz");
-        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+        intent.putExtra("packageName", getPackageName());
+        boolean status = bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+
+        Log.d(TAG, "------------------------------bindService: " + status);
     }
 
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.click:
+
+                Log.d(TAG, "------------------------------onClick: ");
                 try {
-                    Log.d(TAG, "------------------------------onClick: ");
-                    serverInterface.sendMsgToServer("com.package.test","this is client msg,server please receiver");
+                    serverInterface.sendMsgToServer(getPackageName(), "this is client msg,server please receiver");
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
+
                 break;
 
         }
     }
-}
+
 ```
 
+# 4 RemoteCallbackList
+
+```java
+Takes care of the grunt work of maintaining a list of remote interfaces, typically for the use of performing callbacks from a android.app.Service to its clients. In particular, this:
+Keeps track of a set of registered IInterface callbacks, taking care to identify them through their underlying unique IBinder (by calling IInterface.asBinder().
+Attaches a IBinder.DeathRecipient to each registered interface, so that it can be cleaned out of the list if its process goes away.
+Performs locking of the underlying list of interfaces to deal with multithreaded incoming calls, and a thread-safe way to iterate over a snapshot of the list without holding its lock.
+To use this class, simply create a single instance along with your service, and call its register and unregister methods as client register and unregister with your service. To call back on to the registered clients, use beginBroadcast, getBroadcastItem, and finishBroadcast.
+If a registered callback's process goes away, this class will take care of automatically removing it from the list. If you want to do additional work in this situation, you can create a subclass that implements the onCallbackDied method.
+```
+
+翻译：
+
+负责维护远程接口列表的繁重工作，通常用于执行从 android.app.Service 到其客户端的回调。特别是：
+跟踪一组已注册的 IInterface 回调，注意通过其底层唯一的 IBinder 识别它们（通过调用 IInterface.asBinder()。
+将 IBinder.DeathRecipient 附加到每个已注册的接口，以便在其进程消失时将其从列表中清除。
+执行底层接口列表的锁定以处理多线程传入调用，以及一种线程安全的方式来迭代列表的快照而不持有其锁定。
+要使用此类，只需与您的服务一起创建一个实例，并在客户端注册和注销您的服务时调用其注册和注销方法。要回调已注册的客户端，请使用 beginBroadcast、getBroadcastItem 和 finishBroadcast。
+如果已注册的回调进程消失，该类将自动将其从列表中删除。如果你想在这种情况下做额外的工作，你可以创建一个实现 onCallbackDied 方法的子类。
+
+
+
+register 和unregister
+
+```java
+
+    /**
+     * Add a new callback to the list.  This callback will remain in the list
+     * until a corresponding call to {@link #unregister} or its hosting process
+     * goes away.  If the callback was already registered (determined by
+     * checking to see if the {@link IInterface#asBinder callback.asBinder()}
+     * object is already in the list), then it will be left as-is.
+     * Registrations are not counted; a single call to {@link #unregister}
+     * will remove a callback after any number calls to register it.
+     *
+     * @param callback The callback interface to be added to the list.  Must
+     * not be null -- passing null here will cause a NullPointerException.
+     * Most services will want to check for null before calling this with
+     * an object given from a client, so that clients can't crash the
+     * service with bad data.
+     *
+     * @param cookie Optional additional data to be associated with this
+     * callback.
+     * 
+     * @return Returns true if the callback was successfully added to the list.
+     * Returns false if it was not added, either because {@link #kill} had
+     * previously been called or the callback's process has gone away.
+     *
+     * @see #unregister
+     * @see #kill
+     * @see #onCallbackDied
+     */
+    public boolean register(E callback, Object cookie) {
+        synchronized (mCallbacks) {
+            if (mKilled) {
+                return false;
+            }
+            // Flag unusual case that could be caused by a leak. b/36778087
+            logExcessiveCallbacks();
+            IBinder binder = callback.asBinder();
+            try {
+                Callback cb = new Callback(callback, cookie);
+                unregister(callback);
+                binder.linkToDeath(cb, 0);
+                mCallbacks.put(binder, cb);
+                return true;
+            } catch (RemoteException e) {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Remove from the list a callback that was previously added with
+     * {@link #register}.  This uses the
+     * {@link IInterface#asBinder callback.asBinder()} object to correctly
+     * find the previous registration.
+     * Registrations are not counted; a single unregister call will remove
+     * a callback after any number calls to {@link #register} for it.
+     *
+     * @param callback The callback to be removed from the list.  Passing
+     * null here will cause a NullPointerException, so you will generally want
+     * to check for null before calling.
+     *
+     * @return Returns true if the callback was found and unregistered.  Returns
+     * false if the given callback was not found on the list.
+     *
+     * @see #register
+     */
+    public boolean unregister(E callback) {
+        synchronized (mCallbacks) {
+            Callback cb = mCallbacks.remove(callback.asBinder());
+            if (cb != null) {
+                cb.mCallback.asBinder().unlinkToDeath(cb, 0);
+                return true;
+            }
+            return false;
+        }
+    }
+```
+
+
+
+服务端调用callback
+
+```java
+       int i = callbacks.beginBroadcast();
+       while (i > 0) {
+           i--;
+           try {
+               callbacks.getBroadcastItem(i).somethingHappened();
+           } catch (RemoteException e) {
+               // The RemoteCallbackList will take care of removing
+               // the dead object for us.
+           }
+       }
+       callbacks.finishBroadcast();
+```
+
+
+
 # 常见问题
+
 客户端和服务端的包名要保持一致。不然找不到对应的资源。
 
 ```
 java.lang.SecurityException: Binder invocation to an incorrect interface
 ```
+
