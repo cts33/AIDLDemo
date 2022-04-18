@@ -23,11 +23,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private boolean connected;
     private TextView result;
 
-    ClientCallback clientCallback = new ClientCallback.Stub() {
-
+    private ClientCallback clientCallback = new ClientCallback.Stub() {
         @Override
-        public boolean sendMsgToClient(String json) throws RemoteException {
-            Log.d(TAG, "---------------------sendMsgToClient: "+json);
+        public boolean onServerAction(String json) throws RemoteException {
+            Log.d(TAG, "---------------------sendMsgToClient: " + json);
             return true;
         }
     };
@@ -53,17 +52,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     };
 
-    IBinder mService ;
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             try {
                 Log.d(TAG, "------------------------------onServiceConnected: ");
-                mService = service;
                 serverInterface = ServerInterface.Stub.asInterface(service);
-
-                serverInterface.registerCallbackToServer("com.example.client",clientCallback);
+                serverInterface.registerCallbackToServer(getPackageName(), clientCallback);
                 service.linkToDeath(deadthRecipient, 0);
 
             } catch (RemoteException e) {
@@ -90,40 +86,32 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         result = findViewById(R.id.result);
 
         bindService();
-
-
     }
 
     private void bindService() {
         Log.d(TAG, "------------------------------bindService: ");
         Intent intent = new Intent();
         intent.setPackage("com.example.aidlserver");
+//        intent.setComponent(new ComponentName("com.example.aidl","com.example.aidl.ServerService"));
         intent.setAction("qqq.aaa.zzz");
-        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+        intent.putExtra("packageName", getPackageName());
+        boolean status = bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+
+        Log.d(TAG, "------------------------------bindService: " + status);
     }
 
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.click:
+
+                Log.d(TAG, "------------------------------onClick: ");
                 try {
-                    Log.d(TAG, "------------------------------onClick: ");
-//                    serverInterface.sendMsgToServer("com.package.test ","this is client msg,server please receiver");
-
-
-
-                    Parcel data = Parcel.obtain();
-                    Parcel reply = Parcel.obtain();
-                    data.writeString("hello this is client");
-                    data.writeInterfaceToken("xxx");
-
-                    mService.transact(0x001,data,reply,1);
-
-                    reply.readException();
-                    Log.d(TAG, "onClick: result: "+reply.readString());
+                    serverInterface.sendMsgToServer("com.package.test ", "this is client msg,server please receiver");
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
+
                 break;
 
         }

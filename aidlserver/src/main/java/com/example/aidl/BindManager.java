@@ -1,20 +1,9 @@
 package com.example.aidl;
 
-import android.app.Application;
-import android.content.ComponentName;
 import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.os.IBinder;
+import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.util.Log;
-
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 
 /**
  * @description
@@ -24,86 +13,38 @@ import java.util.TimerTask;
 public class BindManager {
     private static final String TAG = "BindManager";
 
-    public static final Object oo = new Object();
     private static BindManager mBindManager = null;
 
-    public static final String ACTION = "qqq.aaa.zzz";
-    public static final String PACKAGE = "com.example.aidlserver";
-    private static HashMap<String, ClientCallback> callbackHashMap = new HashMap<>();
-    private static Application context;
+    private static Context context;
+    private static RemoteCallbackList<ClientCallback> remoteCallbackList = new RemoteCallbackList<>();
 
-    private BindManager(Application context) {
+    private BindManager(Context context) {
         this.context = context;
     }
 
-    public static BindManager getInstance(Application context) {
+    public static BindManager getInstance(Context context) {
         if (mBindManager == null) {
-            synchronized (oo) {
+            synchronized (BindManager.class) {
                 if (mBindManager == null)
                     mBindManager = new BindManager(context);
             }
         }
-
         return mBindManager;
     }
 
-    private static boolean connected;
-
-    public static void clearCallbacks() {
-        Log.d(TAG, "------------------------------unRegister: ");
-        callbackHashMap.clear();
+    public static void killRemoteBackList() {
+        Log.d(TAG, "------------------------------clearCallbacks: ");
+        remoteCallbackList.kill();
     }
 
-    private static IBinder.DeathRecipient deadthRecipient = new IBinder.DeathRecipient() {
-        @Override
-        public void binderDied() {
-            clearCallbacks();
-            Log.d(TAG, "------------------------------------------------------run: binderDied");
-            Timer timer = new Timer();
-            timer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    // TODO 启动服务
-                    startServer();
-                }
-            }, 3000);
-
-            while (connected) {
-                if (timer != null) {
-                    timer.cancel();
-                    timer = null;
-                }
-            }
-        }
-    };
-    private static ServerInterface serverStub;
-    private static ServiceConnection serviceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-
-            Log.d(TAG, "---------------------------onServiceConnected: ");
-            serverStub = ServerInterface.Stub.asInterface(service);
-            try {
-                serverStub.asBinder().linkToDeath(deadthRecipient, 0);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-            connected = true;
-
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            Log.d(TAG, "---------------------------onServiceDisconnected: ");
-            connected = false;
-            clearCallbacks();
-            startServer();
-        }
-    };
-
     public static void registerClientCallback(String packageName, ClientCallback clientCallback) {
-        Log.d(TAG, "------------------------------registerClientCallback: ");
-        callbackHashMap.put(packageName, clientCallback);
+        Log.d(TAG, "------------------------------registerClientCallback: " + packageName);
+        remoteCallbackList.register(clientCallback, packageName);
+    }
+
+    public static void unRegisterClientCallback(ClientCallback clientCallback) {
+        Log.d(TAG, "------------------------------unregisterClientCallback: ");
+        remoteCallbackList.unregister(clientCallback);
     }
 
     /**
@@ -115,8 +56,6 @@ public class BindManager {
 
         // TODO 接受到客户端发来的信息，未来要通知小程序框架，执行某操作
         Log.d(TAG, "receiverClientMsg: " + json);
-
-
     }
 
     /**
@@ -124,33 +63,20 @@ public class BindManager {
      *
      * @param json
      */
-    public static void sendMsgToClient(String json) {
-
+    public static void sendMsgToClient(String packageName, String json) {
         Log.d(TAG, "------------------sendMsgToClient: " + json);
-        ClientCallback callback;
         try {
-            Set<Map.Entry<String, ClientCallback>> entries = callbackHashMap.entrySet();
-            Iterator<Map.Entry<String, ClientCallback>> iterator = entries.iterator();
-
-            while (iterator.hasNext()) {
-                Map.Entry<String, ClientCallback> next = iterator.next();
-                callback = next.getValue();
-                if (callback == null) {
-                    continue;
+            int size = remoteCallbackList.beginBroadcast();
+            for (int index = 0; index < size; index++) {
+                String cookie = (String) remoteCallbackList.getBroadcastCookie(index);
+                if (packageName == cookie) {
+                    ClientCallback callback = remoteCallbackList.getBroadcastItem(index);
+                    callback.onServerAction(json);
                 }
-                callback.sendMsgToClient(json);
             }
+            remoteCallbackList.finishBroadcast();
         } catch (RemoteException e) {
             e.printStackTrace();
         }
-    }
-
-
-    private static void startServer() {
-        Log.d(TAG, "-----------------------------------------------------startServer: ");
-        Intent intent = new Intent();
-        intent.setPackage(PACKAGE);
-        intent.setAction(ACTION);
-        context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
     }
 }

@@ -10,4 +10,6 @@ interface ServerInterface {
     /** 注册一个callback ,用于回调给client数据**/
     void registerCallbackToServer(String packageName,in ClientCallback clientCallback);
 
+    void unRegisterCallbackToServer(in ClientCallback clientCallback);
+
 }

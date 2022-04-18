@@ -1,33 +1,59 @@
 package com.example.aidl;
 
-import android.app.Application;
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.text.TextUtils;
 import android.util.Log;
 
 public class ServerService extends Service {
     private static final String TAG = "AidlService";
+    private BindManager mBindManager;
+    private ServerInterface.Stub serverInterface = new ServerInterface.Stub() {
+        @Override
+        public boolean sendMsgToServer(String packageName, String json) throws RemoteException {
+            Log.d(TAG, "-------------sendMsgToServer: " + json);
+            if (!TextUtils.isEmpty(json)) {
+                mBindManager.receiverClientMsg(json);
+                return true;
+            }
+            return false;
+        }
 
-    private AppletBinder appletBinder = null;
+        @Override
+        public void registerCallbackToServer(String packageName, ClientCallback clientCallback) throws RemoteException {
+            Log.d(TAG, "----------------registerCallbackToServer: ");
+            if (!TextUtils.isEmpty(packageName) && clientCallback != null) {
+                mBindManager.registerClientCallback(packageName, clientCallback);
+            }
+        }
+
+        @Override
+        public void unRegisterCallbackToServer(ClientCallback clientCallback) throws RemoteException {
+            Log.d(TAG, "----------------registerCallbackToServer: ");
+            if (clientCallback != null) {
+                mBindManager.unRegisterClientCallback(clientCallback);
+            }
+        }
+    };
 
     @Override
     public void onCreate() {
         super.onCreate();
-
-        Context context = this.getApplicationContext();
-
-        appletBinder = new AppletBinder(BindManager.getInstance((Application) context));
+        mBindManager = BindManager.getInstance(this);
         Log.d(TAG, "------------ ----------------onCreate: ");
     }
 
     @Override
     public IBinder onBind(Intent intent) {
         Log.d(TAG, "------------------------------onBind: ");
-        return appletBinder;
+        return serverInterface;
     }
 
-
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mBindManager.killRemoteBackList();
+    }
 }
