@@ -66,11 +66,12 @@ public class BindManager {
     public static void sendMsgToClient(String packageName, String json) {
         Log.d(TAG, "------------------sendMsgToClient: " + json);
         try {
-            int size = remoteCallbackList.beginBroadcast();
-            for (int index = 0; index < size; index++) {
-                String cookie = (String) remoteCallbackList.getBroadcastCookie(index);
+            int i = remoteCallbackList.beginBroadcast();
+            while (i > 0) {
+                i--;
+                String cookie = (String) remoteCallbackList.getBroadcastCookie(i);
                 if (packageName == cookie) {
-                    ClientCallback callback = remoteCallbackList.getBroadcastItem(index);
+                    ClientCallback callback = remoteCallbackList.getBroadcastItem(i);
                     callback.onServerAction(json);
                 }
             }

@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.Parcel;
 import android.os.RemoteException;
 import android.util.Log;
 import android.view.View;
@@ -72,7 +71,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         public void onServiceDisconnected(ComponentName name) {
             connected = false;
             Log.d(TAG, "------------------------------onServiceDisconnected: ");
-            bindService();
+
         }
     };
 
@@ -107,7 +106,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 Log.d(TAG, "------------------------------onClick: ");
                 try {
-                    serverInterface.sendMsgToServer("com.package.test ", "this is client msg,server please receiver");
+                    serverInterface.sendMsgToServer(getPackageName(), "this is client msg,server please receiver");
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
