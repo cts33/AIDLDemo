@@ -1,9 +1,11 @@
-package com.example.aidl;
+package com.example.server;
 
 import android.content.Context;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.util.Log;
+
+import com.example.aidl.ClientCallback;
 
 /**
  * @description
@@ -12,9 +14,7 @@ import android.util.Log;
  */
 public class BindManager {
     private static final String TAG = "BindManager";
-
     private static BindManager mBindManager = null;
-
     private static Context context;
     private static RemoteCallbackList<ClientCallback> remoteCallbackList = new RemoteCallbackList<>();
 
@@ -35,16 +35,19 @@ public class BindManager {
     public static void killRemoteBackList() {
         Log.d(TAG, "------------------------------clearCallbacks: ");
         remoteCallbackList.kill();
+
     }
 
     public static void registerClientCallback(String packageName, ClientCallback clientCallback) {
         Log.d(TAG, "------------------------------registerClientCallback: " + packageName);
         remoteCallbackList.register(clientCallback, packageName);
+
     }
 
-    public static void unRegisterClientCallback(ClientCallback clientCallback) {
+    public static void unRegisterClientCallback(String packageName,ClientCallback clientCallback) {
         Log.d(TAG, "------------------------------unregisterClientCallback: ");
         remoteCallbackList.unregister(clientCallback);
+        remoteCallbackList.onCallbackDied(clientCallback,packageName);
     }
 
     /**
@@ -53,7 +56,6 @@ public class BindManager {
      * @param json
      */
     public static void receiverClientMsg(String json) {
-
         // TODO 接受到客户端发来的信息，未来要通知小程序框架，执行某操作
         Log.d(TAG, "receiverClientMsg: " + json);
     }
@@ -64,20 +66,22 @@ public class BindManager {
      * @param json
      */
     public static void sendMsgToClient(String packageName, String json) {
-        Log.d(TAG, "------------------sendMsgToClient: " + json);
         try {
             int i = remoteCallbackList.beginBroadcast();
+            Log.d(TAG, "------------------sendMsgToClient: (i="+i+") json:" + json+"  packageName:"+packageName);
             while (i > 0) {
                 i--;
                 String cookie = (String) remoteCallbackList.getBroadcastCookie(i);
-                if (packageName == cookie) {
+                if (packageName.equals(cookie)) {
                     ClientCallback callback = remoteCallbackList.getBroadcastItem(i);
                     callback.onServerAction(json);
                 }
             }
-            remoteCallbackList.finishBroadcast();
+
         } catch (RemoteException e) {
             e.printStackTrace();
+        }finally {
+            remoteCallbackList.finishBroadcast();
         }
     }
 }

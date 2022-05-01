@@ -8,10 +8,22 @@
     tools:context=".MainActivity">
 
     <Button
-        android:id="@+id/click"
+        android:id="@+id/click1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="获取服务端数据" />
+        android:text="绑定server" />
+
+    <Button
+        android:id="@+id/click2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="sendMsgToServer" />
+
+    <Button
+        android:id="@+id/click3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="抛出异常" />
 
     <TextView
         android:id="@+id/result"

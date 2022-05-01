@@ -1,4 +1,4 @@
-package com.example.aidl;
+package com.example.client;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -13,8 +13,8 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.util.Timer;
-import java.util.TimerTask;
+import com.example.aidl.ClientCallback;
+import com.example.aidl.ServerInterface;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     private static final String TAG = "MainActivity";
@@ -25,42 +25,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private ClientCallback clientCallback = new ClientCallback.Stub() {
         @Override
         public boolean onServerAction(String json) throws RemoteException {
-            Log.d(TAG, "---------------------sendMsgToClient: " + json);
+            Log.d(TAG, "-----------1----------sendMsgToClient: " + json);
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            Log.d(TAG, "-----------2---------sendMsgToClient: " + json);
             return true;
         }
     };
-    IBinder.DeathRecipient deadthRecipient = new IBinder.DeathRecipient() {
-
-        @Override
-        public void binderDied() {
-            Log.d(TAG, "run----------------------------------------:binderDied ");
-            Timer timer = new Timer();
-            timer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    bindService();
-                }
-            }, 3000);
-
-            while (connected) {
-                if (timer != null) {
-                    timer.cancel();
-                    timer = null;
-                }
-            }
-        }
-    };
-
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             try {
-                Log.d(TAG, "------------------------------onServiceConnected: ");
+                Log.d(TAG, "------------------------------onServiceConnected: "+getPackageName());
                 serverInterface = ServerInterface.Stub.asInterface(service);
                 serverInterface.registerCallbackToServer(getPackageName(), clientCallback);
-                service.linkToDeath(deadthRecipient, 0);
-
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
@@ -70,8 +52,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         @Override
         public void onServiceDisconnected(ComponentName name) {
             connected = false;
-            Log.d(TAG, "------------------------------onServiceDisconnected: ");
-
+            try {
+                Log.d(TAG, "------------------------------onServiceDisconnected: ");
+                serverInterface.unRegisterCallbackToServer(getPackageName(),clientCallback);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
         }
     };
 
@@ -81,7 +67,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        findViewById(R.id.click).setOnClickListener(this);
+        findViewById(R.id.click1).setOnClickListener(this);
+        findViewById(R.id.click2).setOnClickListener(this);
+        findViewById(R.id.click3).setOnClickListener(this);
         result = findViewById(R.id.result);
 
         bindService();
@@ -102,17 +90,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
-            case R.id.click:
+            case R.id.click1:
 
-                Log.d(TAG, "------------------------------onClick: ");
+                Log.d(TAG, "---------1---------------------onClick: ");
+                bindService();
+                break;
+            case R.id.click2:
+                Log.d(TAG, "---------2---------------------onClick: ");
                 try {
                     serverInterface.sendMsgToServer(getPackageName(), "this is client msg,server please receiver");
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
-
                 break;
-
+            case R.id.click3:
+                Log.d(TAG, "-----------3-------------------onClick: ");
+                throw new NullPointerException("client 崩溃");
         }
     }
 }

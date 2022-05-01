@@ -1,4 +1,4 @@
-package com.example.aidl;
+package com.example.server;
 
 import android.app.Service;
 import android.content.Intent;
@@ -6,6 +6,9 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.text.TextUtils;
 import android.util.Log;
+
+import com.example.aidl.ClientCallback;
+import com.example.aidl.ServerInterface;
 
 public class ServerService extends Service {
     private static final String TAG = "AidlService";
@@ -30,12 +33,12 @@ public class ServerService extends Service {
         }
 
         @Override
-        public void unRegisterCallbackToServer(ClientCallback clientCallback) throws RemoteException {
-            Log.d(TAG, "----------------registerCallbackToServer: ");
+        public void unRegisterCallbackToServer(String packageName, ClientCallback clientCallback) throws RemoteException {
             if (clientCallback != null) {
-                mBindManager.unRegisterClientCallback(clientCallback);
+                mBindManager.unRegisterClientCallback(getPackageName(),clientCallback);
             }
         }
+
     };
 
     @Override
