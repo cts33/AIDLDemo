@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.lll.libserver">
+
+
+    <application>
+
+        <service
+            android:name="com.lll.libserver.ServerService"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="qqq.aaa.zzz" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>

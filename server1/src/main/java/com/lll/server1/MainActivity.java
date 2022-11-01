@@ -1,4 +1,4 @@
-package com.example.server;
+package com.lll.server1;
 
 import android.app.Application;
 import android.os.Bundle;
@@ -21,7 +21,7 @@ public class MainActivity extends AppCompatActivity implements IUpdateUI {
     private TextView mResult;
     private ServerInterface serverStub;
     private ServerService mService;
-    private BindManager bindManager= BindManager.getInstance();
+    BindManager bindManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,13 +30,8 @@ public class MainActivity extends AppCompatActivity implements IUpdateUI {
         int pid = android.os.Process.myPid();
         Log.d(TAG, "receiverClientMsg: pid=" + pid);
 
-        bindManager.setUIObj(new IUpdateUI(){
-            @Override
-            public void updateUI(String json) {
-                Log.d(TAG, "updateUI() called with: json = [" + json + "]");
-            }
-        });
         initViews();
+        bindManager = BindManager.getInstance();
     }
 
     private void initViews() {
@@ -55,6 +50,6 @@ public class MainActivity extends AppCompatActivity implements IUpdateUI {
 
     @Override
     public void updateUI(String json) {
-        Log.d(TAG, "updateUI: $json");
+        Log.d(TAG, "updateUI() called with: json = [" + json + "]");
     }
 }

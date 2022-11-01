@@ -13,8 +13,9 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.aidl.ClientCallback;
-import com.example.aidl.ServerInterface;
+import com.lll.libserver.ClientCallback;
+import com.lll.libserver.ServerInterface;
+
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     private static final String TAG = "MainActivity";
@@ -26,12 +27,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         @Override
         public boolean onServerAction(String json) throws RemoteException {
             Log.d(TAG, "-----------1----------sendMsgToClient: " + json);
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            Log.d(TAG, "-----------2---------sendMsgToClient: " + json);
             return true;
         }
     };
@@ -40,7 +35,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             try {
-                Log.d(TAG, "------------------------------onServiceConnected: "+getPackageName());
+                Log.d(TAG, "------------------------------onServiceConnected: " + getPackageName());
                 serverInterface = ServerInterface.Stub.asInterface(service);
                 serverInterface.registerCallbackToServer(getPackageName(), clientCallback);
             } catch (RemoteException e) {
@@ -54,7 +49,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             connected = false;
             try {
                 Log.d(TAG, "------------------------------onServiceDisconnected: ");
-                serverInterface.unRegisterCallbackToServer(getPackageName(),clientCallback);
+                serverInterface.unRegisterCallbackToServer(getPackageName(), clientCallback);
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
@@ -77,13 +72,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void bindService() {
         Log.d(TAG, "------------------------------bindService: ");
-        Intent intent = new Intent();
-        intent.setPackage("com.example.aidlserver");
-//        intent.setComponent(new ComponentName("com.example.aidl","com.example.aidl.ServerService"));
-        intent.setAction("qqq.aaa.zzz");
-        intent.putExtra("packageName", getPackageName());
-        boolean status = bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
-
+        Intent intent = new Intent("qqq.aaa.zzz");
+        String pp = "com.lll.libserver";
+//        intent.setComponent(new ComponentName(, pp + ".ServerService"));
+        intent.setPackage(pp);
+//        intent.setType(pp);
+        boolean status =  bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
         Log.d(TAG, "------------------------------bindService: " + status);
     }
 
