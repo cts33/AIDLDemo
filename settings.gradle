@@ -1,18 +1,3 @@
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories {
-        //        maven { url 'https://maven.aliyun.com/nexus/content/repositories/jcenter' }
-        maven {
-            url 'https://maven.aliyun.com/repository/public/'
-        }
-        google()
-        mavenCentral()
-        jcenter() // Warning: this repository is going to shut down soon
-    }
-}
-rootProject.name = "AIDLDemo"
-//include ':app'
+
 include ':aidlserver'
 include ':aidlclient'
-include ':libServer'
-include ':server1'
